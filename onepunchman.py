@@ -1,13 +1,12 @@
 #! python3
 # -*- coding: utf-8 -*-
 
-# 1LDKのwebサイトが更新されると通知するシステム
+# web漫画の最新話がアップされると通知するシステム
 
-import line_notification
 from bs4 import BeautifulSoup
 import urllib.request as url_req
 from config import config, update_recent_article
-from slack_notification import slack_notify
+from line_notification import lineNotify
 
 first_view = url_req.urlopen(config['web_info']['url']).read()
 soup = BeautifulSoup(first_view, "lxml")
@@ -47,22 +46,19 @@ def extract_update_article(columns):
     # 更新された記事のurlを取得
     article_list = []
     update_start = False
-    # 逆順に取得していき、最新話の次からの話のurlを取得
-    for column in reversed(columns):
-        url = extract_url(column)
-        # 記事番号取得
-        article_num = url.replace('https://tonarinoyj.jp/episode/', "")
 
-        # タイトル取得
-        title = extract_title(column)
-        # 取得すべきurl
-        if update_start:
-            article_list.append([title, url])
-            recent_article = article_num
-            continue
-        # 前回取得した最新話かどうか判定
-        if recent_article == article_num:
-            update_start = True
+    # 最新話の話のurlを取得
+    url = extract_url(columns)
+    # 記事番号取得
+    article_num = url.replace('https://tonarinoyj.jp/episode/', "")
+
+    # タイトル取得
+    title = extract_title(columns)
+
+    # 前回取得した最新話かどうか判定
+    if not recent_article == article_num:
+        article_list.append([title, url])
+        recent_article = article_num
 
     # config更新
     update_recent_article(recent_article)
@@ -71,10 +67,13 @@ def extract_update_article(columns):
     return article_list
 
 
+
 if __name__ == "__main__":
     episodes = extract_pick_up()
     url = extract_url(episodes[0])
     article_list = extract_update_article(episodes)
-    slack_notify(text_="---ワンパンマン最新話---", list_=article_list)
+    lineNotify(article_list[0])
+
+
 
 
